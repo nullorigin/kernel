@@ -2,7 +2,7 @@
 /*
  * Driver for Broadcom MPI3 Storage Controllers
  *
- * Copyright (C) 2017-2022 Broadcom Inc.
+ * Copyright (C) 2017-2023 Broadcom Inc.
  *  (mailto: mpi3mr-linuxdrv.pdl@broadcom.com)
  *
  */
@@ -401,6 +401,11 @@ static void mpi3mr_process_admin_reply_desc(struct mpi3mr_ioc *mrioc,
 				cmdptr->state |= MPI3MR_CMD_REPLY_VALID;
 				memcpy((u8 *)cmdptr->reply, (u8 *)def_reply,
 				    mrioc->reply_sz);
+			}
+			if (sense_buf && cmdptr->sensebuf) {
+				cmdptr->is_sense = 1;
+				memcpy(cmdptr->sensebuf, sense_buf,
+				       MPI3MR_SENSE_BUF_SZ);
 			}
 			if (cmdptr->is_waiting) {
 				complete(&cmdptr->done);
@@ -1098,7 +1103,7 @@ static int mpi3mr_issue_and_process_mur(struct mpi3mr_ioc *mrioc,
 	ioc_config &= ~MPI3_SYSIF_IOC_CONFIG_ENABLE_IOC;
 	writel(ioc_config, &mrioc->sysif_regs->ioc_configuration);
 
-	timeout = MPI3MR_RESET_ACK_TIMEOUT * 10;
+	timeout = MPI3MR_MUR_TIMEOUT * 10;
 	do {
 		ioc_status = readl(&mrioc->sysif_regs->ioc_status);
 		if ((ioc_status & MPI3_SYSIF_IOC_STATUS_RESET_HISTORY)) {
@@ -1134,7 +1139,7 @@ static int mpi3mr_issue_and_process_mur(struct mpi3mr_ioc *mrioc,
 static int
 mpi3mr_revalidate_factsdata(struct mpi3mr_ioc *mrioc)
 {
-	void *removepend_bitmap;
+	unsigned long *removepend_bitmap;
 
 	if (mrioc->facts.reply_sz > mrioc->reply_sz) {
 		ioc_err(mrioc,
@@ -1198,7 +1203,7 @@ mpi3mr_revalidate_factsdata(struct mpi3mr_ioc *mrioc)
  */
 static int mpi3mr_bring_ioc_ready(struct mpi3mr_ioc *mrioc)
 {
-	u32 ioc_config, ioc_status, timeout;
+	u32 ioc_config, ioc_status, timeout, host_diagnostic;
 	int retval = 0;
 	enum mpi3mr_iocstate ioc_state;
 	u64 base_info;
@@ -1252,6 +1257,23 @@ static int mpi3mr_bring_ioc_ready(struct mpi3mr_ioc *mrioc)
 			    retval, mpi3mr_iocstate_name(ioc_state));
 	}
 	if (ioc_state != MRIOC_STATE_RESET) {
+		if (ioc_state == MRIOC_STATE_FAULT) {
+			timeout = MPI3_SYSIF_DIAG_SAVE_TIMEOUT * 10;
+			mpi3mr_print_fault_info(mrioc);
+			do {
+				host_diagnostic =
+					readl(&mrioc->sysif_regs->host_diagnostic);
+				if (!(host_diagnostic &
+				      MPI3_SYSIF_HOST_DIAG_SAVE_IN_PROGRESS))
+					break;
+				if (!pci_device_is_present(mrioc->pdev)) {
+					mrioc->unrecoverable = 1;
+					ioc_err(mrioc, "controller is not present at the bringup\n");
+					goto out_device_not_present;
+				}
+				msleep(100);
+			} while (--timeout);
+		}
 		mpi3mr_print_fault_info(mrioc);
 		ioc_info(mrioc, "issuing soft reset to bring to reset state\n");
 		retval = mpi3mr_issue_reset(mrioc,
@@ -2509,7 +2531,7 @@ static void mpi3mr_watchdog_work(struct work_struct *work)
 		mrioc->unrecoverable = 1;
 		goto schedule_work;
 	case MPI3_SYSIF_FAULT_CODE_SOFT_RESET_IN_PROGRESS:
-		return;
+		goto schedule_work;
 	case MPI3_SYSIF_FAULT_CODE_CI_ACTIVATION_RESET:
 		reset_reason = MPI3MR_RESET_FROM_CIACTIV_FAULT;
 		break;
@@ -2603,14 +2625,12 @@ static int mpi3mr_setup_admin_qpair(struct mpi3mr_ioc *mrioc)
 	mrioc->num_admin_req = mrioc->admin_req_q_sz /
 	    MPI3MR_ADMIN_REQ_FRAME_SZ;
 	mrioc->admin_req_ci = mrioc->admin_req_pi = 0;
-	mrioc->admin_req_base = NULL;
 
 	mrioc->admin_reply_q_sz = MPI3MR_ADMIN_REPLY_Q_SIZE;
 	mrioc->num_admin_replies = mrioc->admin_reply_q_sz /
 	    MPI3MR_ADMIN_REPLY_FRAME_SZ;
 	mrioc->admin_reply_ci = 0;
 	mrioc->admin_reply_ephase = 1;
-	mrioc->admin_reply_base = NULL;
 	atomic_set(&mrioc->admin_reply_q_in_use, 0);
 
 	if (!mrioc->admin_req_base) {
@@ -3625,8 +3645,7 @@ int mpi3mr_setup_resources(struct mpi3mr_ioc *mrioc)
 	int i, retval = 0, capb = 0;
 	u16 message_control;
 	u64 dma_mask = mrioc->dma_mask ? mrioc->dma_mask :
-	    (((dma_get_required_mask(&pdev->dev) > DMA_BIT_MASK(32)) &&
-	    (sizeof(dma_addr_t) > 4)) ? DMA_BIT_MASK(64) : DMA_BIT_MASK(32));
+	    ((sizeof(dma_addr_t) > 4) ? DMA_BIT_MASK(64) : DMA_BIT_MASK(32));
 
 	if (pci_enable_device_mem(pdev)) {
 		ioc_err(mrioc, "pci_enable_device_mem: failed\n");

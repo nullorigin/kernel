@@ -52,6 +52,7 @@ int acpi_lapic;
 int acpi_ioapic;
 int acpi_strict;
 int acpi_disable_cmcff;
+bool acpi_int_src_ovr[NR_IRQS_LEGACY];
 
 /* ACPI SCI override configuration */
 u8 acpi_sci_flags __initdata;
@@ -146,7 +147,11 @@ static int __init acpi_parse_madt(struct acpi_table_header *table)
 
 		pr_debug("Local APIC address 0x%08x\n", madt->address);
 	}
-	if (madt->header.revision >= 5)
+
+	/* ACPI 6.3 and newer support the online capable bit. */
+	if (acpi_gbl_FADT.header.revision > 6 ||
+	    (acpi_gbl_FADT.header.revision == 6 &&
+	     acpi_gbl_FADT.minor_revision >= 3))
 		acpi_support_online_capable = true;
 
 	default_acpi_madt_oem_check(madt->header.oem_id,
@@ -193,7 +198,8 @@ static bool __init acpi_is_processor_usable(u32 lapic_flags)
 	if (lapic_flags & ACPI_MADT_ENABLED)
 		return true;
 
-	if (acpi_support_online_capable && (lapic_flags & ACPI_MADT_ONLINE_CAPABLE))
+	if (!acpi_support_online_capable ||
+	    (lapic_flags & ACPI_MADT_ONLINE_CAPABLE))
 		return true;
 
 	return false;
@@ -582,6 +588,9 @@ acpi_parse_int_src_ovr(union acpi_subtable_headers * header,
 		return -EINVAL;
 
 	acpi_table_print_madt_entry(&header->common);
+
+	if (intsrc->source_irq < NR_IRQS_LEGACY)
+		acpi_int_src_ovr[intsrc->source_irq] = true;
 
 	if (intsrc->source_irq == acpi_gbl_FADT.sci_interrupt) {
 		acpi_sci_ioapic_setup(intsrc->source_irq,
@@ -1854,22 +1863,27 @@ early_param("acpi_sci", setup_acpi_sci);
 int __acpi_acquire_global_lock(unsigned int *lock)
 {
 	unsigned int old, new, val;
+
+	old = READ_ONCE(*lock);
 	do {
-		old = *lock;
-		new = (((old & ~0x3) + 2) + ((old >> 1) & 0x1));
-		val = cmpxchg(lock, old, new);
-	} while (unlikely (val != old));
-	return ((new & 0x3) < 3) ? -1 : 0;
+		val = (old >> 1) & 0x1;
+		new = (old & ~0x3) + 2 + val;
+	} while (!try_cmpxchg(lock, &old, new));
+
+	if (val)
+		return 0;
+
+	return -1;
 }
 
 int __acpi_release_global_lock(unsigned int *lock)
 {
-	unsigned int old, new, val;
+	unsigned int old, new;
+
+	old = READ_ONCE(*lock);
 	do {
-		old = *lock;
 		new = old & ~0x3;
-		val = cmpxchg(lock, old, new);
-	} while (unlikely (val != old));
+	} while (!try_cmpxchg(lock, &old, new));
 	return old & 0x1;
 }
 

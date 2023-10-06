@@ -3579,12 +3579,28 @@ static int lan78xx_rx(struct lan78xx_net *dev, struct sk_buff *skb,
 		size = (rx_cmd_a & RX_CMD_A_LEN_MASK_);
 		align_count = (4 - ((size + RXW_PADDING) % 4)) % 4;
 
+		if (unlikely(size > skb->len)) {
+			netif_dbg(dev, rx_err, dev->net,
+				  "size err rx_cmd_a=0x%08x\n",
+				  rx_cmd_a);
+			return 0;
+		}
+
 		if (unlikely(rx_cmd_a & RX_CMD_A_RED_)) {
 			netif_dbg(dev, rx_err, dev->net,
 				  "Error rx_cmd_a=0x%08x", rx_cmd_a);
 		} else {
-			u32 frame_len = size - ETH_FCS_LEN;
+			u32 frame_len;
 			struct sk_buff *skb2;
+
+			if (unlikely(size < ETH_FCS_LEN)) {
+				netif_dbg(dev, rx_err, dev->net,
+					  "size err rx_cmd_a=0x%08x\n",
+					  rx_cmd_a);
+				return 0;
+			}
+
+			frame_len = size - ETH_FCS_LEN;
 
 			skb2 = napi_alloc_skb(&dev->napi, frame_len);
 			if (!skb2)
@@ -4208,8 +4224,6 @@ static void lan78xx_disconnect(struct usb_interface *intf)
 	if (!dev)
 		return;
 
-	set_bit(EVENT_DEV_DISCONNECT, &dev->flags);
-
 	netif_napi_del(&dev->napi);
 
 	udev = interface_to_usbdev(intf);
@@ -4217,6 +4231,8 @@ static void lan78xx_disconnect(struct usb_interface *intf)
 
 	unregister_netdev(net);
 
+	timer_shutdown_sync(&dev->stat_monitor);
+	set_bit(EVENT_DEV_DISCONNECT, &dev->flags);
 	cancel_delayed_work_sync(&dev->wq);
 
 	phydev = net->phydev;
@@ -4230,9 +4246,6 @@ static void lan78xx_disconnect(struct usb_interface *intf)
 		fixed_phy_unregister(phydev);
 
 	usb_scuttle_anchored_urbs(&dev->deferred);
-
-	if (timer_pending(&dev->stat_monitor))
-		del_timer_sync(&dev->stat_monitor);
 
 	lan78xx_unbind(dev, intf);
 

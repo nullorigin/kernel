@@ -65,7 +65,7 @@ static void __attribute__((__flatten__)) guest_code(struct svm_test_data *svm)
 
 	/* Intercept RDMSR 0xc0000100 */
 	vmcb->control.intercept |= 1ULL << INTERCEPT_MSR_PROT;
-	set_bit(2 * (MSR_FS_BASE & 0x1fff), svm->msr + 0x800);
+	__set_bit(2 * (MSR_FS_BASE & 0x1fff), svm->msr + 0x800);
 	run_guest(vmcb, svm->vmcb_gpa);
 	GUEST_ASSERT(vmcb->control.exit_code == SVM_EXIT_MSR);
 	vmcb->save.rip += 2; /* rdmsr */
@@ -100,11 +100,10 @@ static void __attribute__((__flatten__)) guest_code(struct svm_test_data *svm)
 
 int main(int argc, char *argv[])
 {
-	vm_vaddr_t nested_gva = 0;
-
+	vm_vaddr_t nested_gva = 0, hv_pages_gva = 0;
+	vm_vaddr_t hcall_page;
 	struct kvm_vcpu *vcpu;
 	struct kvm_vm *vm;
-	struct kvm_run *run;
 	struct ucall uc;
 	int stage;
 
@@ -113,16 +112,18 @@ int main(int argc, char *argv[])
 	/* Create VM */
 	vm = vm_create_with_one_vcpu(&vcpu, guest_code);
 	vcpu_set_hv_cpuid(vcpu);
-	run = vcpu->run;
 	vcpu_alloc_svm(vm, &nested_gva);
-	vcpu_args_set(vcpu, 1, nested_gva);
+	vcpu_alloc_hyperv_test_pages(vm, &hv_pages_gva);
+
+	hcall_page = vm_vaddr_alloc_pages(vm, 1);
+	memset(addr_gva2hva(vm, hcall_page), 0x0,  getpagesize());
+
+	vcpu_args_set(vcpu, 3, nested_gva, hv_pages_gva, addr_gva2gpa(vm, hcall_page));
+	vcpu_set_msr(vcpu, HV_X64_MSR_VP_INDEX, vcpu->id);
 
 	for (stage = 1;; stage++) {
 		vcpu_run(vcpu);
-		TEST_ASSERT(run->exit_reason == KVM_EXIT_IO,
-			    "Stage %d: unexpected exit reason: %u (%s),\n",
-			    stage, run->exit_reason,
-			    exit_reason_str(run->exit_reason));
+		TEST_ASSERT_KVM_EXIT_REASON(vcpu, KVM_EXIT_IO);
 
 		switch (get_ucall(vcpu, &uc)) {
 		case UCALL_ABORT:
