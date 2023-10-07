@@ -791,7 +791,7 @@ out:
 	return ret;
 }
 
-#ifdef CONFIG_SMP
+#if defined(CONFIG_SMP) && !defined(CONFIG_SCHED_ALT)
 /*
  * Helper routine for generate_sched_domains().
  * Do cpusets a, b have overlapping effective cpus_allowed masks?
@@ -1190,7 +1190,7 @@ static void rebuild_sched_domains_locked(void)
 	/* Have scheduler rebuild the domains */
 	partition_and_rebuild_sched_domains(ndoms, doms, attr);
 }
-#else /* !CONFIG_SMP */
+#else /* !CONFIG_SMP || CONFIG_SCHED_ALT */
 static void rebuild_sched_domains_locked(void)
 {
 }
@@ -1588,11 +1588,16 @@ static void update_cpumasks_hier(struct cpuset *cs, struct tmpmasks *tmp,
 		}
 
 		/*
-		 * Skip the whole subtree if the cpumask remains the same
-		 * and has no partition root state and force flag not set.
+		 * Skip the whole subtree if
+		 * 1) the cpumask remains the same,
+		 * 2) has no partition root state,
+		 * 3) force flag not set, and
+		 * 4) for v2 load balance state same as its parent.
 		 */
 		if (!cp->partition_root_state && !force &&
-		    cpumask_equal(tmp->new_cpus, cp->effective_cpus)) {
+		    cpumask_equal(tmp->new_cpus, cp->effective_cpus) &&
+		    (!cgroup_subsys_on_dfl(cpuset_cgrp_subsys) ||
+		    (is_sched_load_balance(parent) == is_sched_load_balance(cp)))) {
 			pos_css = css_rightmost_descendant(pos_css);
 			continue;
 		}
@@ -1674,6 +1679,20 @@ update_parent_subparts:
 			!cpumask_equal(cp->cpus_allowed, cp->effective_cpus));
 
 		update_tasks_cpumask(cp, tmp->new_cpus);
+
+		/*
+		 * On default hierarchy, inherit the CS_SCHED_LOAD_BALANCE
+		 * from parent if current cpuset isn't a valid partition root
+		 * and their load balance states differ.
+		 */
+		if (cgroup_subsys_on_dfl(cpuset_cgrp_subsys) &&
+		    !is_partition_valid(cp) &&
+		    (is_sched_load_balance(parent) != is_sched_load_balance(cp))) {
+			if (is_sched_load_balance(parent))
+				set_bit(CS_SCHED_LOAD_BALANCE, &cp->flags);
+			else
+				clear_bit(CS_SCHED_LOAD_BALANCE, &cp->flags);
+		}
 
 		/*
 		 * On legacy hierarchy, if the effective cpumask of any non-
@@ -2509,12 +2528,15 @@ static int cpuset_can_attach(struct cgroup_taskset *tset)
 		if (ret)
 			goto out_unlock;
 
+#ifndef CONFIG_SCHED_ALT
 		if (dl_task(task)) {
 			cs->nr_migrate_dl_tasks++;
 			cs->sum_migrate_dl_bw += task->dl.dl_bw;
 		}
+#endif
 	}
 
+#ifndef CONFIG_SCHED_ALT
 	if (!cs->nr_migrate_dl_tasks)
 		goto out_success;
 
@@ -2535,6 +2557,7 @@ static int cpuset_can_attach(struct cgroup_taskset *tset)
 	}
 
 out_success:
+#endif
 	/*
 	 * Mark attach is in progress.  This makes validate_change() fail
 	 * changes which zero cpus/mems_allowed.
@@ -2558,12 +2581,14 @@ static void cpuset_cancel_attach(struct cgroup_taskset *tset)
 	if (!cs->attach_in_progress)
 		wake_up(&cpuset_attach_wq);
 
+#ifndef CONFIG_SCHED_ALT
 	if (cs->nr_migrate_dl_tasks) {
 		int cpu = cpumask_any(cs->effective_cpus);
 
 		dl_bw_free(cpu, cs->sum_migrate_dl_bw);
 		reset_migrate_dl_data(cs);
 	}
+#endif
 
 	mutex_unlock(&cpuset_mutex);
 }
@@ -3222,6 +3247,14 @@ static int cpuset_css_online(struct cgroup_subsys_state *css)
 		cs->use_parent_ecpus = true;
 		parent->child_ecpus_count++;
 	}
+
+	/*
+	 * For v2, clear CS_SCHED_LOAD_BALANCE if parent is isolated
+	 */
+	if (cgroup_subsys_on_dfl(cpuset_cgrp_subsys) &&
+	    !is_sched_load_balance(parent))
+		clear_bit(CS_SCHED_LOAD_BALANCE, &cs->flags);
+
 	spin_unlock_irq(&callback_lock);
 
 	if (!test_bit(CGRP_CPUSET_CLONE_CHILDREN, &css->cgroup->flags))
