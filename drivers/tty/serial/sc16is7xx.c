@@ -1353,6 +1353,7 @@ static int sc16is7xx_gpio_direction_output(struct gpio_chip *chip,
 			      BIT(offset));
 	sc16is7xx_port_write(port, SC16IS7XX_IOSTATE_REG, state);
 <<<<<<< ours
+<<<<<<< ours
 
 	return 0;
 }
@@ -1364,6 +1365,8 @@ static int sc16is7xx_gpio_init_valid_mask(struct gpio_chip *chip,
 	struct sc16is7xx_port *s = gpiochip_get_data(chip);
 
 	*valid_mask = s->gpio_valid_mask;
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
 
