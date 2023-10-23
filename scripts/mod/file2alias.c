@@ -47,10 +47,6 @@ typedef struct {
 #define	UUID_STRING_LEN		36
 
 /* MEI UUID type, don't use anywhere else */
-typedef struct {
-	__u8 b[16];
-} uuid_le;
-
 /* Big exception to the "don't include kernel headers into userspace, which
  * even potentially has different endianness and word sizes, since
  * we handle those differences explicitly below */
@@ -108,7 +104,7 @@ static inline void add_wildcard(char *str)
 		strcat(str + len, "*");
 }
 
-static inline void add_uuid(char *str, uuid_le uuid)
+static inline void add_uuid(char *str, uuid_t uuid)
 {
 	int len = strlen(str);
 

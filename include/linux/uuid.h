@@ -34,6 +34,17 @@ typedef struct {
    ((c) >> 8) & 0xff, (c) & 0xff,					\
    (d0), (d1), (d2), (d3), (d4), (d5), (d6), (d7) }})
 
+#define UUID_T(a, b, c, d0, d1, d2, d3, d4, d5, d6, d7)         \
+((uuid_t)                                                               \
+{{ (a) & 0xff, ((a) >> 8) & 0xff, ((a) >> 16) & 0xff, ((a) >> 24) & 0xff, \
+   (b) & 0xff, ((b) >> 8) & 0xff,                                       \
+   (c) & 0xff, ((c) >> 8) & 0xff,                                       \
+   (d0), (d1), (d2), (d3), (d4), (d5), (d6), (d7) }})
+
+#define NULL_UUID_T                                                     \
+        UUID_T(0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00,      \
+             0x00, 0x00, 0x00, 0x00)
+
 /*
  * The length of a UUID string ("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
  * not including trailing NUL.
@@ -92,9 +103,13 @@ static inline bool uuid_is_null(const uuid_t *uuid)
 {
 	return uuid_equal(uuid, &uuid_null);
 }
-static inline int uuid_le_cmp(const guid_t u1, const guid_t u2)
+static inline int uuid_t_cmp(const uuid_t u1, const uuid_t u2)
 {
-	return memcmp(&u1, &u2, sizeof(guid_t));
+	return memcmp(&u1, &u2, sizeof(uuid_t));
+}
+static inline int guid_t_cmp(const guid_t g1, const guid_t g2)
+{
+	return memcmp(&g1, &g2, sizeof(guid_t));
 }
 void generate_random_uuid(unsigned char uuid[16]);
 void generate_random_guid(unsigned char guid[16]);

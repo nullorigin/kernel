@@ -28,7 +28,7 @@
 MODULE_DESCRIPTION("The Intel(R) wireless / CSME firmware interface");
 MODULE_LICENSE("GPL");
 
-#define MEI_WLAN_UUID UUID_LE(0x13280904, 0x7792, 0x4fcb, \
+#define MEI_WLAN_UUID UUID_T(0x13280904, 0x7792, 0x4fcb, \
 			      0xa1, 0xaa, 0x5e, 0x70, 0xcb, 0xb1, 0xe8, 0x65)
 
 /* After CSME takes ownership, it won't release it for 60 seconds to avoid

@@ -130,16 +130,16 @@ void mei_me_cl_add(struct mei_device *dev, struct mei_me_client *me_cl)
  * Locking: dev->me_clients_rwsem
  */
 static struct mei_me_client *__mei_me_cl_by_uuid(struct mei_device *dev,
-					const uuid_le *uuid)
+					const uuid_t *uuid)
 {
 	struct mei_me_client *me_cl;
-	const uuid_le *pn;
+	const uuid_t *pn;
 
 	WARN_ON(!rwsem_is_locked(&dev->me_clients_rwsem));
 
 	list_for_each_entry(me_cl, &dev->me_clients, list) {
 		pn = &me_cl->props.protocol_name;
-		if (uuid_le_cmp(*uuid, *pn) == 0)
+		if (uuid_t_cmp(*uuid, *pn) == 0)
 			return mei_me_cl_get(me_cl);
 	}
 
@@ -158,7 +158,7 @@ static struct mei_me_client *__mei_me_cl_by_uuid(struct mei_device *dev,
  * Locking: dev->me_clients_rwsem
  */
 struct mei_me_client *mei_me_cl_by_uuid(struct mei_device *dev,
-					const uuid_le *uuid)
+					const uuid_t *uuid)
 {
 	struct mei_me_client *me_cl;
 
@@ -210,16 +210,16 @@ struct mei_me_client *mei_me_cl_by_id(struct mei_device *dev, u8 client_id)
  * Locking: dev->me_clients_rwsem
  */
 static struct mei_me_client *__mei_me_cl_by_uuid_id(struct mei_device *dev,
-					   const uuid_le *uuid, u8 client_id)
+					   const uuid_t *uuid, u8 client_id)
 {
 	struct mei_me_client *me_cl;
-	const uuid_le *pn;
+	const uuid_t *pn;
 
 	WARN_ON(!rwsem_is_locked(&dev->me_clients_rwsem));
 
 	list_for_each_entry(me_cl, &dev->me_clients, list) {
 		pn = &me_cl->props.protocol_name;
-		if (uuid_le_cmp(*uuid, *pn) == 0 &&
+		if (uuid_t_cmp(*uuid, *pn) == 0 &&
 		    me_cl->client_id == client_id)
 			return mei_me_cl_get(me_cl);
 	}
@@ -239,7 +239,7 @@ static struct mei_me_client *__mei_me_cl_by_uuid_id(struct mei_device *dev,
  * Return: me client or null if not found
  */
 struct mei_me_client *mei_me_cl_by_uuid_id(struct mei_device *dev,
-					   const uuid_le *uuid, u8 client_id)
+					   const uuid_t *uuid, u8 client_id)
 {
 	struct mei_me_client *me_cl;
 
@@ -258,7 +258,7 @@ struct mei_me_client *mei_me_cl_by_uuid_id(struct mei_device *dev,
  *
  * Locking: called under "dev->device_lock" lock
  */
-void mei_me_cl_rm_by_uuid(struct mei_device *dev, const uuid_le *uuid)
+void mei_me_cl_rm_by_uuid(struct mei_device *dev, const uuid_t *uuid)
 {
 	struct mei_me_client *me_cl;
 
@@ -280,7 +280,7 @@ void mei_me_cl_rm_by_uuid(struct mei_device *dev, const uuid_le *uuid)
  *
  * Locking: called under "dev->device_lock" lock
  */
-void mei_me_cl_rm_by_uuid_id(struct mei_device *dev, const uuid_le *uuid, u8 id)
+void mei_me_cl_rm_by_uuid_id(struct mei_device *dev, const uuid_t *uuid, u8 id)
 {
 	struct mei_me_client *me_cl;
 

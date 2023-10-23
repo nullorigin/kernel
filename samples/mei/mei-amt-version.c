@@ -90,7 +90,7 @@
 } while (0)
 
 struct mei {
-	uuid_le guid;
+	uuid_t guid;
 	bool initialized;
 	bool verbose;
 	unsigned int buf_size;
@@ -108,7 +108,7 @@ static void mei_deinit(struct mei *cl)
 	cl->initialized = false;
 }
 
-static bool mei_init(struct mei *me, const uuid_le *guid,
+static bool mei_init(struct mei *me, const uuid_t *guid,
 		unsigned char req_protocol_version, bool verbose)
 {
 	int result;
@@ -279,7 +279,7 @@ struct amt_host_if_resp_header {
 	unsigned char data[];
 } __attribute__((packed));
 
-const uuid_le MEI_IAMTHIF = UUID_LE(0x12f80028, 0xb4b7, 0x4b2d,  \
+const uuid_t MEI_IAMTHIF = UUID_T(0x12f80028, 0xb4b7, 0x4b2d,  \
 				0xac, 0xa8, 0x46, 0xe0, 0xff, 0x65, 0x81, 0x4c);
 
 #define AMT_HOST_IF_CODE_VERSIONS_REQUEST  0x0400001A

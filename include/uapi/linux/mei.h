@@ -7,7 +7,7 @@
 #ifndef _LINUX_MEI_H
 #define _LINUX_MEI_H
 
-#include <linux/mei_uuid.h>
+#include <linux/uuid.h>
 
 /*
  * This IOCTL is used to associate the current file descriptor with a
@@ -42,7 +42,7 @@ struct mei_client {
  */
 struct mei_connect_client_data {
 	union {
-		uuid_le in_client_uuid;
+		uuid_t in_client_uuid;
 		struct mei_client out_client_properties;
 	};
 };
@@ -74,7 +74,7 @@ struct mei_connect_client_data {
  * @reserved: reserved for future use
  */
 struct mei_connect_client_vtag {
-	uuid_le in_client_uuid;
+	uuid_t in_client_uuid;
 	__u8 vtag;
 	__u8 reserved[3];
 };

@@ -400,7 +400,7 @@ out:
  * Return: 0 on success, <0 on failure.
  */
 static int mei_ioctl_connect_client(struct file *file,
-				    const uuid_le *in_client_uuid,
+				    const uuid_t *in_client_uuid,
 				    struct mei_client *client)
 {
 	struct mei_device *dev;
@@ -467,7 +467,7 @@ end:
  *	-ENOTTY - no such client
  *	-EOPNOTSUPP - vtags are not supported by client
  */
-static int mei_vt_support_check(struct mei_device *dev, const uuid_le *uuid)
+static int mei_vt_support_check(struct mei_device *dev, const uuid_t *uuid)
 {
 	struct mei_me_client *me_cl;
 	int ret;
@@ -500,7 +500,7 @@ static int mei_vt_support_check(struct mei_device *dev, const uuid_le *uuid)
  * Return: 0 on success, <0 on failure.
  */
 static int mei_ioctl_connect_vtag(struct file *file,
-				  const uuid_le *in_client_uuid,
+				  const uuid_t *in_client_uuid,
 				  struct mei_client *client,
 				  u8 vtag)
 {
@@ -535,7 +535,7 @@ static int mei_ioctl_connect_vtag(struct file *file,
 				continue;
 
 			/* only search for same UUID */
-			if (uuid_le_cmp(*mei_cl_uuid(pos), *in_client_uuid))
+			if (uuid_t_cmp(*mei_cl_uuid(pos), *in_client_uuid))
 				continue;
 
 			/* if tag already exist try another fp */
@@ -641,7 +641,7 @@ static long mei_ioctl(struct file *file, unsigned int cmd, unsigned long data)
 	struct mei_cl *cl = file->private_data;
 	struct mei_connect_client_data conn;
 	struct mei_connect_client_data_vtag conn_vtag;
-	const uuid_le *cl_uuid;
+	const uuid_t *cl_uuid;
 	struct mei_client *props;
 	u8 vtag;
 	u32 notify_get, notify_req;

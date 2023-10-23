@@ -12,38 +12,38 @@
 
 #include <linux/mei.h>
 #include <linux/mei_cl_bus.h>
-
+#include <linux/uuid.h>
 #include "mei_dev.h"
 #include "client.h"
 #include "mkhi.h"
 
-#define MEI_UUID_NFC_INFO UUID_LE(0xd2de1625, 0x382d, 0x417d, \
+#define MEI_UUID_NFC_INFO UUID_T(0xd2de1625, 0x382d, 0x417d, \
 			0x48, 0xa4, 0xef, 0xab, 0xba, 0x8a, 0x12, 0x06)
 
-static const uuid_le mei_nfc_info_guid = MEI_UUID_NFC_INFO;
+static const uuid_t mei_nfc_info_guid = MEI_UUID_NFC_INFO;
 
-#define MEI_UUID_NFC_HCI UUID_LE(0x0bb17a78, 0x2a8e, 0x4c50, \
+#define MEI_UUID_NFC_HCI UUID_T(0x0bb17a78, 0x2a8e, 0x4c50, \
 			0x94, 0xd4, 0x50, 0x26, 0x67, 0x23, 0x77, 0x5c)
 
-#define MEI_UUID_WD UUID_LE(0x05B79A6F, 0x4628, 0x4D7F, \
+#define MEI_UUID_WD UUID_T(0x05B79A6F, 0x4628, 0x4D7F, \
 			    0x89, 0x9D, 0xA9, 0x15, 0x14, 0xCB, 0x32, 0xAB)
 
-#define MEI_UUID_MKHIF_FIX UUID_LE(0x55213584, 0x9a29, 0x4916, \
+#define MEI_UUID_MKHIF_FIX UUID_T(0x55213584, 0x9a29, 0x4916, \
 			0xba, 0xdf, 0xf, 0xb7, 0xed, 0x68, 0x2a, 0xeb)
 
-#define MEI_UUID_IGSC_MKHI UUID_LE(0xE2C2AFA2, 0x3817, 0x4D19, \
+#define MEI_UUID_IGSC_MKHI UUID_T(0xE2C2AFA2, 0x3817, 0x4D19, \
 			0x9D, 0x95, 0x06, 0xB1, 0x6B, 0x58, 0x8A, 0x5D)
 
-#define MEI_UUID_IGSC_MKHI_FIX UUID_LE(0x46E0C1FB, 0xA546, 0x414F, \
+#define MEI_UUID_IGSC_MKHI_FIX UUID_T(0x46E0C1FB, 0xA546, 0x414F, \
 			0x91, 0x70, 0xB7, 0xF4, 0x6D, 0x57, 0xB4, 0xAD)
 
-#define MEI_UUID_HDCP UUID_LE(0xB638AB7E, 0x94E2, 0x4EA2, \
+#define MEI_UUID_HDCP UUID_T(0xB638AB7E, 0x94E2, 0x4EA2, \
 			      0xA5, 0x52, 0xD1, 0xC5, 0x4B, 0x62, 0x7F, 0x04)
 
-#define MEI_UUID_PAVP UUID_LE(0xfbf6fcf1, 0x96cf, 0x4e2e, 0xA6, \
+#define MEI_UUID_PAVP UUID_T(0xfbf6fcf1, 0x96cf, 0x4e2e, 0xA6, \
 			      0xa6, 0x1b, 0xab, 0x8c, 0xbe, 0x36, 0xb1)
 
-#define MEI_UUID_ANY NULL_UUID_LE
+#define MEI_UUID_ANY NULL_UUID_T
 
 /**
  * number_of_connections - determine whether an client be on the bus
@@ -547,7 +547,7 @@ static void pxp_is_ready(struct mei_cl_device *cldev)
 
 static struct mei_fixup {
 
-	const uuid_le uuid;
+	const uuid_t uuid;
 	void (*hook)(struct mei_cl_device *cldev);
 } mei_fixups[] = {
 	MEI_FIXUP(MEI_UUID_ANY, number_of_connections),
@@ -570,14 +570,14 @@ static struct mei_fixup {
 void mei_cl_bus_dev_fixup(struct mei_cl_device *cldev)
 {
 	struct mei_fixup *f;
-	const uuid_le *uuid = mei_me_cl_uuid(cldev->me_cl);
+	const uuid_t *uuid = mei_me_cl_uuid(cldev->me_cl);
 	size_t i;
 
 	for (i = 0; i < ARRAY_SIZE(mei_fixups); i++) {
 
 		f = &mei_fixups[i];
-		if (uuid_le_cmp(f->uuid, MEI_UUID_ANY) == 0 ||
-		    uuid_le_cmp(f->uuid, *uuid) == 0)
+		if (uuid_t_cmp(f->uuid, MEI_UUID_ANY) == 0 ||
+		    uuid_t_cmp(f->uuid, *uuid) == 0)
 			f->hook(cldev);
 	}
 }

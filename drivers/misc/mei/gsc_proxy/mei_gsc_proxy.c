@@ -185,7 +185,7 @@ static void mei_gsc_proxy_remove(struct mei_cl_device *cldev)
 		dev_warn(&cldev->dev, "mei_cldev_disable() failed %d\n", ret);
 }
 
-#define MEI_UUID_GSC_PROXY UUID_LE(0xf73db04, 0x97ab, 0x4125, \
+#define MEI_UUID_GSC_PROXY UUID_T(0xf73db04, 0x97ab, 0x4125, \
 				   0xb8, 0x93, 0xe9, 0x4, 0xad, 0xd, 0x54, 0x64)
 
 static struct mei_cl_device_id mei_gsc_proxy_tbl[] = {
