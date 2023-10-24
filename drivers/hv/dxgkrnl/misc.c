@@ -19,7 +19,7 @@
 #include "misc.h"
 
 #undef dev_fmt
-#define dev_fmt(fmt)	"dxgk: " fmt
+#define dev_fmt(fmt) "dxgk: " fmt
 
 u16 *wcsncpy(u16 *dest, const u16 *src, size_t n)
 {
@@ -35,4 +35,3 @@ u16 *wcsncpy(u16 *dest, const u16 *src, size_t n)
 	dest[i - 1] = 0;
 	return dest;
 }
-

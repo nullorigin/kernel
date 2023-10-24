@@ -18,14 +18,14 @@
 #include "dxgkrnl.h"
 #include "dxgsyncfile.h"
 
-#define PCI_VENDOR_ID_MICROSOFT		0x1414
-#define PCI_DEVICE_ID_VIRTUAL_RENDER	0x008E
+#define PCI_VENDOR_ID_MICROSOFT 0x1414
+#define PCI_DEVICE_ID_VIRTUAL_RENDER 0x008E
 
 #undef pr_fmt
-#define pr_fmt(fmt)	"dxgk: " fmt
+#define pr_fmt(fmt) "dxgk: " fmt
 
 #undef dev_fmt
-#define dev_fmt(fmt)	"dxgk: " fmt
+#define dev_fmt(fmt) "dxgk: " fmt
 
 /*
  * Interface from dxgglobal
@@ -163,8 +163,7 @@ void signal_host_cpu_event(struct dxghostevent *eventhdr)
 {
 	struct dxghosteventcpu *event = (struct dxghosteventcpu *)eventhdr;
 
-	if (event->remove_from_list ||
-		event->destroy_after_signal) {
+	if (event->remove_from_list || event->destroy_after_signal) {
 		list_del(&eventhdr->host_event_list_entry);
 		eventhdr->host_event_list_entry.next = NULL;
 	}
@@ -289,8 +288,8 @@ int dxgglobal_create_adapter(struct pci_dev *dev, guid_t *guid,
 	dxgglobal->num_adapters++;
 	dxgglobal_release_adapter_list_lock(DXGLOCK_EXCL);
 
-	DXG_TRACE("new adapter added %p %x-%x", adapter,
-		adapter->luid.a, adapter->luid.b);
+	DXG_TRACE("new adapter added %p %x-%x", adapter, adapter->luid.a,
+		  adapter->luid.b);
 cleanup:
 	return ret;
 }
@@ -435,30 +434,28 @@ const struct file_operations dxgk_fops = {
  */
 
 /* Compute device VM bus channel instance ID */
-#define DXGK_VMBUS_CHANNEL_ID_OFFSET	192
+#define DXGK_VMBUS_CHANNEL_ID_OFFSET 192
 
 /* DXGK_VMBUS_INTERFACE_VERSION (u32) */
-#define DXGK_VMBUS_VERSION_OFFSET	(DXGK_VMBUS_CHANNEL_ID_OFFSET + \
-					sizeof(guid_t))
+#define DXGK_VMBUS_VERSION_OFFSET \
+	(DXGK_VMBUS_CHANNEL_ID_OFFSET + sizeof(guid_t))
 
 /* Luid of the virtual GPU on the host (struct winluid) */
-#define DXGK_VMBUS_VGPU_LUID_OFFSET	(DXGK_VMBUS_VERSION_OFFSET + \
-					sizeof(u32))
+#define DXGK_VMBUS_VGPU_LUID_OFFSET (DXGK_VMBUS_VERSION_OFFSET + sizeof(u32))
 
 /* The host caps (dxgk_vmbus_hostcaps) */
-#define DXGK_VMBUS_HOSTCAPS_OFFSET	(DXGK_VMBUS_VGPU_LUID_OFFSET + \
-					sizeof(struct winluid))
+#define DXGK_VMBUS_HOSTCAPS_OFFSET \
+	(DXGK_VMBUS_VGPU_LUID_OFFSET + sizeof(struct winluid))
 
 /* The guest writes its capabilities to this address */
-#define DXGK_VMBUS_GUESTCAPS_OFFSET	(DXGK_VMBUS_VERSION_OFFSET + \
-					sizeof(u32))
+#define DXGK_VMBUS_GUESTCAPS_OFFSET (DXGK_VMBUS_VERSION_OFFSET + sizeof(u32))
 
 /* Capabilities of the guest driver, reported to the host */
 struct dxgk_vmbus_guestcaps {
 	union {
 		struct {
-			u32	wsl2		: 1;
-			u32	reserved	: 31;
+			u32 wsl2 : 1;
+			u32 reserved : 31;
 		};
 		u32 guest_caps;
 	};
@@ -474,8 +471,8 @@ struct dxgk_vmbus_guestcaps {
 struct dxgk_vmbus_hostcaps {
 	union {
 		struct {
-			u32	map_guest_memory	: 1;
-			u32	reserved		: 31;
+			u32 map_guest_memory : 1;
+			u32 reserved : 31;
 		};
 		u32 host_caps;
 	};
@@ -513,24 +510,24 @@ static int dxg_pci_probe_device(struct pci_dev *dev,
 	guid_t guid;
 	u32 vmbus_interface_ver = DXGK_VMBUS_INTERFACE_VERSION;
 	struct winluid vgpu_luid = {};
-	struct dxgk_vmbus_guestcaps guest_caps = {.wsl2 = 1};
+	struct dxgk_vmbus_guestcaps guest_caps = { .wsl2 = 1 };
 	struct dxgglobal *dxgglobal = dxggbl();
 	struct dxgk_vmbus_hostcaps host_caps = {};
 
 	mutex_lock(&dxgglobal->device_mutex);
 
-	if (dxgglobal->vmbus_ver == 0)  {
+	if (dxgglobal->vmbus_ver == 0) {
 		/* Report capabilities to the host */
 
 		ret = pci_write_config_dword(dev, DXGK_VMBUS_GUESTCAPS_OFFSET,
-					guest_caps.guest_caps);
+					     guest_caps.guest_caps);
 		if (ret)
 			goto cleanup;
 
 		/* Negotiate the VM bus version */
 
 		ret = pci_read_config_dword(dev, DXGK_VMBUS_VERSION_OFFSET,
-					&vmbus_interface_ver);
+					    &vmbus_interface_ver);
 		if (ret == 0 && vmbus_interface_ver != 0)
 			dxgglobal->vmbus_ver = vmbus_interface_ver;
 		else
@@ -540,12 +537,12 @@ static int dxg_pci_probe_device(struct pci_dev *dev,
 			goto read_channel_id;
 
 		ret = pci_write_config_dword(dev, DXGK_VMBUS_VERSION_OFFSET,
-					DXGK_VMBUS_INTERFACE_VERSION);
+					     DXGK_VMBUS_INTERFACE_VERSION);
 		if (ret)
 			goto cleanup;
 
 		ret = pci_read_config_dword(dev, DXGK_VMBUS_HOSTCAPS_OFFSET,
-					&host_caps.host_caps);
+					    &host_caps.host_caps);
 		if (ret == 0) {
 			if (host_caps.map_guest_memory)
 				dxgglobal->map_guest_pages_enabled = true;
@@ -559,7 +556,7 @@ read_channel_id:
 
 	/* Get the VM bus channel ID for the virtual GPU */
 	ret = dxg_pci_read_dwords(dev, DXGK_VMBUS_CHANNEL_ID_OFFSET,
-				sizeof(guid), (int *)&guid);
+				  sizeof(guid), (int *)&guid);
 	if (ret)
 		goto cleanup;
 
@@ -588,7 +585,7 @@ cleanup:
 	mutex_unlock(&dxgglobal->device_mutex);
 
 	if (ret)
-		DXG_TRACE("err: %d",  ret);
+		DXG_TRACE("err: %d", ret);
 	return ret;
 }
 
@@ -616,12 +613,10 @@ static void dxg_pci_remove_device(struct pci_dev *dev)
 }
 
 static struct pci_device_id dxg_pci_id_table[] = {
-	{
-		.vendor = PCI_VENDOR_ID_MICROSOFT,
-		.device = PCI_DEVICE_ID_VIRTUAL_RENDER,
-		.subvendor = PCI_ANY_ID,
-		.subdevice = PCI_ANY_ID
-	},
+	{ .vendor = PCI_VENDOR_ID_MICROSOFT,
+	  .device = PCI_DEVICE_ID_VIRTUAL_RENDER,
+	  .subvendor = PCI_ANY_ID,
+	  .subdevice = PCI_ANY_ID },
 	{ 0 }
 };
 
@@ -652,12 +647,12 @@ static int dxgglobal_getiospace(struct dxgglobal *dxgglobal)
 		DXG_ERR("Unable to allocate mmio memory: %d", ret);
 		return ret;
 	}
-	dxgglobal->mmiospace_size = dxgglobal->mem->end -
-	    dxgglobal->mem->start + 1;
+	dxgglobal->mmiospace_size =
+		dxgglobal->mem->end - dxgglobal->mem->start + 1;
 	dxgglobal->mmiospace_base = dxgglobal->mem->start;
 	DXG_TRACE("mmio allocated %llx  %llx %llx %llx",
-		 dxgglobal->mmiospace_base, dxgglobal->mmiospace_size,
-		 dxgglobal->mem->start, dxgglobal->mem->end);
+		  dxgglobal->mmiospace_base, dxgglobal->mmiospace_size,
+		  dxgglobal->mem->start, dxgglobal->mem->end);
 
 	return 0;
 }
@@ -740,7 +735,7 @@ static const struct hv_vmbus_device_id dxg_vmbus_id_table[] = {
 	{ HV_GPUP_DXGK_VGPU_GUID },
 	/* Global Dxgkgnl channel for the virtual machine */
 	{ HV_GPUP_DXGK_GLOBAL_GUID },
-	{ }
+	{}
 };
 
 static int dxg_probe_vmbus(struct hv_device *hdev,
@@ -757,7 +752,7 @@ static int dxg_probe_vmbus(struct hv_device *hdev,
 		/* This is a new virtual GPU channel */
 		guid_to_luid(&hdev->channel->offermsg.offer.if_instance, &luid);
 		DXG_TRACE("vGPU channel: %pUb",
-			 &hdev->channel->offermsg.offer.if_instance);
+			  &hdev->channel->offermsg.offer.if_instance);
 		vgpuch = kzalloc(sizeof(struct dxgvgpuchannel), GFP_KERNEL);
 		if (vgpuch == NULL) {
 			ret = -ENOMEM;
@@ -768,11 +763,11 @@ static int dxg_probe_vmbus(struct hv_device *hdev,
 		list_add_tail(&vgpuch->vgpu_ch_list_entry,
 			      &dxgglobal->vgpu_ch_list_head);
 		dxgglobal_start_adapters();
-	} else if (guid_t_cmp(hdev->dev_type,
-		   dxg_vmbus_id_table[1].guid) == 0) {
+	} else if (guid_t_cmp(hdev->dev_type, dxg_vmbus_id_table[1].guid) ==
+		   0) {
 		/* This is the global Dxgkgnl channel */
 		DXG_TRACE("Global channel: %pUb",
-			 &hdev->channel->offermsg.offer.if_instance);
+			  &hdev->channel->offermsg.offer.if_instance);
 		if (dxgglobal->hdev) {
 			/* This device should appear only once */
 			DXG_ERR("global channel already exists");
@@ -804,8 +799,7 @@ static void dxg_remove_vmbus(struct hv_device *hdev)
 	if (guid_t_cmp(hdev->dev_type, dxg_vmbus_id_table[0].guid) == 0) {
 		DXG_TRACE("Remove virtual GPU channel");
 		dxgglobal_stop_adapter_vmbus(hdev);
-		list_for_each_entry(vgpu_channel,
-				    &dxgglobal->vgpu_ch_list_head,
+		list_for_each_entry(vgpu_channel, &dxgglobal->vgpu_ch_list_head,
 				    vgpu_ch_list_entry) {
 			if (vgpu_channel->hdev == hdev) {
 				list_del(&vgpu_channel->vgpu_ch_list_entry);
@@ -813,8 +807,8 @@ static void dxg_remove_vmbus(struct hv_device *hdev)
 				break;
 			}
 		}
-	} else if (guid_t_cmp(hdev->dev_type,
-		   dxg_vmbus_id_table[1].guid) == 0) {
+	} else if (guid_t_cmp(hdev->dev_type, dxg_vmbus_id_table[1].guid) ==
+		   0) {
 		DXG_TRACE("Remove global channel device");
 		dxgglobal_destroy_global_channel();
 	} else {

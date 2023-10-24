@@ -19,7 +19,7 @@
 #include "dxgkrnl.h"
 
 #undef dev_fmt
-#define dev_fmt(fmt)	"dxgk: " fmt
+#define dev_fmt(fmt) "dxgk: " fmt
 
 int dxgadapter_set_vmbus(struct dxgadapter *adapter, struct hv_device *hdev)
 {
@@ -27,9 +27,8 @@ int dxgadapter_set_vmbus(struct dxgadapter *adapter, struct hv_device *hdev)
 
 	guid_to_luid(&hdev->channel->offermsg.offer.if_instance,
 		     &adapter->luid);
-	DXG_TRACE("%x:%x %p %pUb",
-		adapter->luid.b, adapter->luid.a, hdev->channel,
-		&hdev->channel->offermsg.offer.if_instance);
+	DXG_TRACE("%x:%x %p %pUb", adapter->luid.b, adapter->luid.a,
+		  hdev->channel, &hdev->channel->offermsg.offer.if_instance);
 
 	ret = dxgvmbuschannel_init(&adapter->channel, hdev);
 	if (ret)
@@ -64,8 +63,7 @@ void dxgadapter_start(struct dxgadapter *adapter)
 	/* Find the corresponding vGPU vm bus channel */
 	list_for_each_entry(entry, &dxgglobal->vgpu_ch_list_head,
 			    vgpu_ch_list_entry) {
-		if (memcmp(&adapter->luid,
-			   &entry->adapter_luid,
+		if (memcmp(&adapter->luid, &entry->adapter_luid,
 			   sizeof(struct winluid)) == 0) {
 			ch = entry;
 			break;
@@ -330,10 +328,9 @@ void dxgdevice_destroy(struct dxgdevice *device)
 	dxgdevice_acquire_alloc_list_lock(device);
 
 	while (!list_empty(&device->syncobj_list_head)) {
-		struct dxgsyncobject *syncobj =
-		    list_first_entry(&device->syncobj_list_head,
-				     struct dxgsyncobject,
-				     syncobj_list_entry);
+		struct dxgsyncobject *syncobj = list_first_entry(
+			&device->syncobj_list_head, struct dxgsyncobject,
+			syncobj_list_entry);
 		list_del(&syncobj->syncobj_list_entry);
 		syncobj->syncobj_list_entry.next = NULL;
 		dxgdevice_release_alloc_list_lock(device);
@@ -579,9 +576,8 @@ void dxgsharedresource_add_resource(struct dxgsharedresource *shared_resource,
 	up_write(&shared_resource->adapter->shared_resource_list_lock);
 }
 
-void dxgsharedresource_remove_resource(struct dxgsharedresource
-				       *shared_resource,
-				       struct dxgresource *resource)
+void dxgsharedresource_remove_resource(
+	struct dxgsharedresource *shared_resource, struct dxgresource *resource)
 {
 	struct dxgadapter *adapter = shared_resource->adapter;
 
@@ -638,7 +634,7 @@ void dxgresource_destroy(struct dxgresource *resource)
 	/* device->alloc_list_lock is held */
 	struct dxgallocation *alloc;
 	struct dxgallocation *tmp;
-	struct d3dkmt_destroyallocation2 args = { };
+	struct d3dkmt_destroyallocation2 args = {};
 	int destroyed = test_and_set_bit(0, &resource->flags);
 	struct dxgdevice *device = resource->device;
 	struct dxgsharedresource *shared_resource;
@@ -648,8 +644,8 @@ void dxgresource_destroy(struct dxgresource *resource)
 		if (resource->handle.v) {
 			args.device = device->handle;
 			args.resource = resource->handle;
-			dxgvmb_send_destroy_allocation(device->process,
-						       device, &args, NULL);
+			dxgvmb_send_destroy_allocation(device->process, device,
+						       &args, NULL);
 			resource->handle.v = 0;
 		}
 		list_for_each_entry_safe(alloc, tmp, &resource->alloc_list_head,
@@ -657,7 +653,7 @@ void dxgresource_destroy(struct dxgresource *resource)
 			dxgallocation_destroy(alloc);
 		}
 		dxgdevice_remove_resource(device, resource);
-				shared_resource = resource->shared_owner;
+		shared_resource = resource->shared_owner;
 		if (shared_resource) {
 			dxgsharedresource_remove_resource(shared_resource,
 							  resource);
@@ -681,7 +677,7 @@ bool dxgresource_is_active(struct dxgresource *resource)
 }
 
 int dxgresource_add_alloc(struct dxgresource *resource,
-				      struct dxgallocation *alloc)
+			  struct dxgallocation *alloc)
 {
 	int ret = -ENODEV;
 	struct dxgdevice *device = resource->device;
@@ -912,7 +908,7 @@ void dxgallocation_free_handle(struct dxgallocation *alloc)
 void dxgallocation_destroy(struct dxgallocation *alloc)
 {
 	struct dxgprocess *process = alloc->process;
-	struct d3dkmt_destroyallocation2 args = { };
+	struct d3dkmt_destroyallocation2 args = {};
 
 	dxgallocation_stop(alloc);
 	if (alloc->resource_owner)
@@ -923,8 +919,7 @@ void dxgallocation_destroy(struct dxgallocation *alloc)
 	if (alloc->alloc_handle.v && !alloc->resource_owner) {
 		args.device = alloc->owner.device->handle;
 		args.alloc_count = 1;
-		dxgvmb_send_destroy_allocation(process,
-					       alloc->owner.device,
+		dxgvmb_send_destroy_allocation(process, alloc->owner.device,
 					       &args, &alloc->alloc_handle);
 	}
 	if (alloc->gpadl.gpadl_handle) {
@@ -959,8 +954,8 @@ void dxgpagingqueue_stop(struct dxgpagingqueue *pqueue)
 
 	if (pqueue->mapped_address) {
 		ret = dxg_unmap_iospace(pqueue->mapped_address, PAGE_SIZE);
-		DXG_TRACE("fence is unmapped %d %p",
-			ret, pqueue->mapped_address);
+		DXG_TRACE("fence is unmapped %d %p", ret,
+			  pqueue->mapped_address);
 		pqueue->mapped_address = NULL;
 	}
 }
@@ -1045,8 +1040,8 @@ void dxgprocess_adapter_destroy(struct dxgprocess_adapter *adapter_info)
 		list_del(&device->device_list_entry);
 		device->device_list_entry.next = NULL;
 		mutex_unlock(&adapter_info->device_list_mutex);
-		dxgvmb_send_flush_device(device,
-			DXGDEVICE_FLUSHSCHEDULER_DEVICE_TERMINATE);
+		dxgvmb_send_flush_device(
+			device, DXGDEVICE_FLUSHSCHEDULER_DEVICE_TERMINATE);
 		dxgdevice_destroy(device);
 		mutex_lock(&adapter_info->device_list_mutex);
 	}
@@ -1141,8 +1136,7 @@ void dxgsharedsyncobj_release(struct kref *refcount)
 			       ssyncobj_kref);
 	DXG_TRACE("Destroying shared sync object %p", syncobj);
 	if (syncobj->adapter) {
-		dxgadapter_remove_shared_syncobj(syncobj->adapter,
-							syncobj);
+		dxgadapter_remove_shared_syncobj(syncobj->adapter, syncobj);
 		kref_put(&syncobj->adapter->adapter_kref, dxgadapter_release);
 	}
 	kfree(syncobj);
@@ -1169,15 +1163,11 @@ void dxgsharedsyncobj_remove_syncobj(struct dxgsharedsyncobject *shared,
 	up_write(&shared->syncobj_list_lock);
 }
 
-struct dxgsyncobject *dxgsyncobject_create(struct dxgprocess *process,
-					   struct dxgdevice *device,
-					   struct dxgadapter *adapter,
-					   enum
-					   d3dddi_synchronizationobject_type
-					   type,
-					   struct
-					   d3dddi_synchronizationobject_flags
-					   flags)
+struct dxgsyncobject *
+dxgsyncobject_create(struct dxgprocess *process, struct dxgdevice *device,
+		     struct dxgadapter *adapter,
+		     enum d3dddi_synchronizationobject_type type,
+		     struct d3dddi_synchronizationobject_flags flags)
 {
 	struct dxgsyncobject *syncobj;
 
@@ -1193,8 +1183,8 @@ struct dxgsyncobject *dxgsyncobject_create(struct dxgprocess *process,
 		break;
 	case _D3DDDI_CPU_NOTIFICATION:
 		syncobj->cpu_event = 1;
-		syncobj->host_event = kzalloc(sizeof(*syncobj->host_event),
-					GFP_KERNEL);
+		syncobj->host_event =
+			kzalloc(sizeof(*syncobj->host_event), GFP_KERNEL);
 		if (syncobj->host_event == NULL)
 			goto cleanup;
 		break;
@@ -1289,8 +1279,8 @@ void dxgsyncobject_stop(struct dxgsyncobject *syncobj)
 			if (syncobj->mapped_address) {
 				ret = dxg_unmap_iospace(syncobj->mapped_address,
 							PAGE_SIZE);
-				DXG_TRACE("unmap fence %d %p",
-					ret, syncobj->mapped_address);
+				DXG_TRACE("unmap fence %d %p", ret,
+					  syncobj->mapped_address);
 				syncobj->mapped_address = NULL;
 			}
 		}
@@ -1303,8 +1293,7 @@ void dxgsyncobject_release(struct kref *refcount)
 
 	syncobj = container_of(refcount, struct dxgsyncobject, syncobj_kref);
 	if (syncobj->shared_owner) {
-		dxgsharedsyncobj_remove_syncobj(syncobj->shared_owner,
-						syncobj);
+		dxgsharedsyncobj_remove_syncobj(syncobj->shared_owner, syncobj);
 		kref_put(&syncobj->shared_owner->ssyncobj_kref,
 			 dxgsharedsyncobj_release);
 	}

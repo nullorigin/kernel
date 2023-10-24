@@ -14,7 +14,7 @@
 #include "dxgkrnl.h"
 
 #undef dev_fmt
-#define dev_fmt(fmt)	"dxgk: " fmt
+#define dev_fmt(fmt) "dxgk: " fmt
 
 /*
  * Creates a new dxgprocess object
@@ -74,8 +74,8 @@ void dxgprocess_destroy(struct dxgprocess *process)
 	dxgglobal_release_process_adapter_lock();
 
 	i = 0;
-	while (hmgrtable_next_entry(&process->local_handle_table,
-				    &i, &t, &h, &o)) {
+	while (hmgrtable_next_entry(&process->local_handle_table, &i, &t, &h,
+				    &o)) {
 		switch (t) {
 		case HMGRENTRY_TYPE_DXGADAPTER:
 			dxgprocess_close_adapter(process, h);
@@ -132,10 +132,9 @@ void dxgprocess_mem_release(struct kref *refcount)
 	kfree(process);
 }
 
-struct dxgprocess_adapter *dxgprocess_get_adapter_info(struct dxgprocess
-						       *process,
-						       struct dxgadapter
-						       *adapter)
+struct dxgprocess_adapter *
+dxgprocess_get_adapter_info(struct dxgprocess *process,
+			    struct dxgadapter *adapter)
 {
 	struct dxgprocess_adapter *entry;
 
@@ -156,8 +155,7 @@ struct dxgprocess_adapter *dxgprocess_get_adapter_info(struct dxgprocess
  *
  */
 int dxgprocess_open_adapter(struct dxgprocess *process,
-					struct dxgadapter *adapter,
-					struct d3dkmthandle *h)
+			    struct dxgadapter *adapter, struct d3dkmthandle *h)
 {
 	int ret = 0;
 	struct dxgprocess_adapter *adapter_info;
@@ -286,15 +284,15 @@ struct dxgdevice *dxgprocess_device_by_object_handle(struct dxgprocess *process,
 			break;
 		case HMGRENTRY_TYPE_DXGCONTEXT:
 			device_handle =
-			    ((struct dxgcontext *)obj)->device_handle;
+				((struct dxgcontext *)obj)->device_handle;
 			break;
 		case HMGRENTRY_TYPE_DXGPAGINGQUEUE:
 			device_handle =
-			    ((struct dxgpagingqueue *)obj)->device_handle;
+				((struct dxgpagingqueue *)obj)->device_handle;
 			break;
 		case HMGRENTRY_TYPE_DXGHWQUEUE:
 			device_handle =
-			    ((struct dxghwqueue *)obj)->device_handle;
+				((struct dxghwqueue *)obj)->device_handle;
 			break;
 		default:
 			DXG_ERR("invalid handle type: %d", t);
@@ -302,9 +300,8 @@ struct dxgdevice *dxgprocess_device_by_object_handle(struct dxgprocess *process,
 		}
 		if (device == NULL)
 			device = hmgrtable_get_object_by_type(
-					&process->handle_table,
-					 HMGRENTRY_TYPE_DXGDEVICE,
-					 device_handle);
+				&process->handle_table,
+				HMGRENTRY_TYPE_DXGDEVICE, device_handle);
 		if (device)
 			if (kref_get_unless_zero(&device->device_kref) == 0)
 				device = NULL;
@@ -318,9 +315,8 @@ struct dxgdevice *dxgprocess_device_by_object_handle(struct dxgprocess *process,
 struct dxgdevice *dxgprocess_device_by_handle(struct dxgprocess *process,
 					      struct d3dkmthandle handle)
 {
-	return dxgprocess_device_by_object_handle(process,
-						  HMGRENTRY_TYPE_DXGDEVICE,
-						  handle);
+	return dxgprocess_device_by_object_handle(
+		process, HMGRENTRY_TYPE_DXGDEVICE, handle);
 }
 
 void dxgprocess_ht_lock_shared_down(struct dxgprocess *process)

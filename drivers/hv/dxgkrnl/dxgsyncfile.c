@@ -36,7 +36,7 @@
 #include "dxgsyncfile.h"
 
 #undef dev_fmt
-#define dev_fmt(fmt)	"dxgk: " fmt
+#define dev_fmt(fmt) "dxgk: " fmt
 
 static const struct dma_fence_ops dxgdmafence_ops;
 
@@ -108,8 +108,8 @@ int dxgkio_create_sync_file(struct dxgprocess *process, void *__user inargs)
 	pt->hdr.event_type = dxghostevent_dma_fence;
 	dxgglobal_add_host_event(&pt->hdr);
 
-	dma_fence_init(&pt->base, &dxgdmafence_ops, &pt->lock,
-		       pt->context, args.fence_value);
+	dma_fence_init(&pt->base, &dxgdmafence_ops, &pt->lock, pt->context,
+		       args.fence_value);
 
 	sync_file = sync_file_create(&pt->base);
 	if (sync_file == NULL) {
@@ -134,9 +134,8 @@ int dxgkio_create_sync_file(struct dxgprocess *process, void *__user inargs)
 	hmgrtable_unlock(&process->handle_table, DXGLOCK_SHARED);
 
 	if (pt->shared_syncobj) {
-		ret = dxgsharedsyncobj_get_host_nt_handle(pt->shared_syncobj,
-						process,
-						args.monitored_fence);
+		ret = dxgsharedsyncobj_get_host_nt_handle(
+			pt->shared_syncobj, process, args.monitored_fence);
 		if (ret)
 			pt->shared_syncobj = NULL;
 	}
@@ -147,9 +146,8 @@ int dxgkio_create_sync_file(struct dxgprocess *process, void *__user inargs)
 	waitargs.object_count = 1;
 	waitargs.objects = &args.monitored_fence;
 	waitargs.fence_values = &args.fence_value;
-	ret = dxgvmb_send_wait_sync_object_cpu(process, adapter,
-					       &waitargs, false,
-					       pt->hdr.event_id);
+	ret = dxgvmb_send_wait_sync_object_cpu(process, adapter, &waitargs,
+					       false, pt->hdr.event_id);
 	if (ret < 0) {
 		DXG_ERR("dxgvmb_send_wait_sync_object_cpu failed");
 		goto cleanup;
@@ -200,8 +198,8 @@ int dxgkio_open_syncobj_from_syncfile(struct dxgprocess *process,
 	struct dxgdevice *device = NULL;
 	struct dxgadapter *adapter = NULL;
 	struct dxgsyncobject *syncobj = NULL;
-	struct d3dddi_synchronizationobject_flags flags = { };
-	struct d3dkmt_opensyncobjectfromnthandle2 openargs = { };
+	struct d3dddi_synchronizationobject_flags flags = {};
+	struct d3dkmt_opensyncobjectfromnthandle2 openargs = {};
 	struct dxgglobal *dxgglobal = dxggbl();
 
 	ret = copy_from_user(&args, inargs, sizeof(args));
@@ -265,16 +263,15 @@ int dxgkio_open_syncobj_from_syncfile(struct dxgprocess *process,
 	openargs.flags.nt_security_sharing = 1;
 	openargs.flags.no_signal = 1;
 
-	ret = dxgvmb_send_open_sync_object_nt(process,
-				&dxgglobal->channel, &openargs, syncobj);
+	ret = dxgvmb_send_open_sync_object_nt(process, &dxgglobal->channel,
+					      &openargs, syncobj);
 	if (ret) {
 		DXG_ERR("Failed to open shared syncobj on host");
 		goto cleanup;
 	}
 
 	hmgrtable_lock(&process->handle_table, DXGLOCK_EXCL);
-	ret = hmgrtable_assign_handle(&process->handle_table,
-				      syncobj,
+	ret = hmgrtable_assign_handle(&process->handle_table, syncobj,
 				      HMGRENTRY_TYPE_DXGSYNCOBJECT,
 				      openargs.sync_object);
 	if (ret == 0) {
@@ -341,9 +338,8 @@ int dxgkio_wait_sync_file(struct dxgprocess *process, void *__user inargs)
 	}
 	pt = to_syncpoint(dmafence);
 
-	device = dxgprocess_device_by_object_handle(process,
-						    HMGRENTRY_TYPE_DXGCONTEXT,
-						    args.context);
+	device = dxgprocess_device_by_object_handle(
+		process, HMGRENTRY_TYPE_DXGCONTEXT, args.context);
 	if (device == NULL) {
 		ret = -EINVAL;
 		goto cleanup;
@@ -370,21 +366,18 @@ int dxgkio_wait_sync_file(struct dxgprocess *process, void *__user inargs)
 		DXG_ERR("Sync object is not shared");
 		goto cleanup;
 	}
-	ret = dxgvmb_send_open_sync_object(process,
-				device->handle,
-				pt->shared_syncobj->host_shared_handle,
-				&syncobj_handle);
+	ret = dxgvmb_send_open_sync_object(
+		process, device->handle, pt->shared_syncobj->host_shared_handle,
+		&syncobj_handle);
 	if (ret) {
 		DXG_ERR("Failed to open shared syncobj on host");
 		goto cleanup;
 	}
 
 	/* Ask the host to insert the syncobj to the context queue */
-	ret = dxgvmb_send_wait_sync_object_gpu(process, adapter,
-					       args.context, 1,
-					       &syncobj_handle,
-					       &pt->fence_value,
-					       false);
+	ret = dxgvmb_send_wait_sync_object_gpu(process, adapter, args.context,
+					       1, &syncobj_handle,
+					       &pt->fence_value, false);
 	if (ret < 0) {
 		DXG_ERR("dxgvmb_send_wait_sync_object_cpu failed");
 		goto cleanup;
@@ -455,14 +448,13 @@ static bool dxgdmafence_enable_signaling(struct dma_fence *fence)
 	return true;
 }
 
-static void dxgdmafence_value_str(struct dma_fence *fence,
-				  char *str, int size)
+static void dxgdmafence_value_str(struct dma_fence *fence, char *str, int size)
 {
 	snprintf(str, size, "%lld", fence->seqno);
 }
 
-static void dxgdmafence_timeline_value_str(struct dma_fence *fence,
-					   char *str, int size)
+static void dxgdmafence_timeline_value_str(struct dma_fence *fence, char *str,
+					   int size)
 {
 	struct dxgsyncpoint *syncpoint;
 
