@@ -106,7 +106,6 @@
 #include <linux/socket.h>
 #include <linux/stddef.h>
 #include <linux/unistd.h>
-#include <linux/wait.h>
 #include <linux/workqueue.h>
 #include <net/sock.h>
 #include <net/af_vsock.h>
