@@ -13,6 +13,7 @@
 
 #include <linux/eventfd.h>
 #include <linux/file.h>
+#include <linux/uaccess.h>
 #include <linux/fs.h>
 #include <linux/anon_inodes.h>
 #include <linux/mman.h>
